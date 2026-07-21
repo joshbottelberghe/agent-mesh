@@ -1,0 +1,25 @@
+# Copy this to config.yaml (gitignored) and point it at YOUR data.
+# Nothing here is secret — the ngrok token and peer tokens come from the
+# environment, never this file.
+
+node_name: "example"
+listen_addr: "127.0.0.1:7900"   # used only when ngrok.enabled is false
+
+ngrok:
+  enabled: true
+  domain: ""                    # optional reserved static domain; empty = random URL
+                                # (requires NGROK_AUTHTOKEN in the environment)
+
+data:
+  # Clone-and-run works out of the box against the sample data in ./data.
+  # Replace these with your own private paths (e.g. ~/notes, ~/tasks).
+  tasks_dir: "./data/tasks"
+  notes_dirs:
+    - "./data/notes"
+
+# Phase 2 — other nodes this one may call. Tokens are read from the named env
+# var, so config.yaml still holds no secrets.
+peers: []
+  # - name: "alex"
+  #   url: "https://alex-node.ngrok.app/mcp"
+  #   token_env: "PEER_ALEX_TOKEN"

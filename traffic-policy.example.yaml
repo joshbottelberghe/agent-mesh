@@ -1,0 +1,44 @@
+# ngrok Traffic Policy — the edge decides who may reach this node's MCP endpoint,
+# before a single request touches your machine. Apply it to the endpoint in the
+# ngrok dashboard (Endpoints → your domain → Traffic Policy) or via the agent.
+#
+# Mental model (Josh): this is the ngrok analogue of what Alkira Traffic Policy
+# did for routes — selectively share, and restrict/allow traffic — except the
+# "routes" here are your agent's tools, and the policy runs at ngrok's PoP.
+# CEL expressions per request, actions applied in order. Deny by default.
+
+on_http_request:
+  # 1) Require a shared bearer token. Give each peer their own token so you can
+  #    revoke one without touching the others. Store real values as secrets.
+  - name: require-peer-token
+    expressions:
+      - "!(req.headers.exists('authorization') && req.headers['authorization'][0] in ['Bearer ${PEER_ALEX_TOKEN}', 'Bearer ${PEER_SELF_TOKEN}'])"
+    actions:
+      - type: custom-response
+        config:
+          status_code: 401
+          body: "unauthorized: present a valid peer token"
+
+  # 2) Rate-limit each caller so a chatty (or runaway) agent can't hammer you.
+  - name: rate-limit-peers
+    actions:
+      - type: rate-limit
+        config:
+          name: per-peer
+          algorithm: sliding_window
+          capacity: 60
+          rate: "60s"
+          bucket_key:
+            - "req.headers['authorization'][0]"
+
+  # 3) Only the MCP path is reachable; everything else is dropped at the edge.
+  - name: mcp-path-only
+    expressions:
+      - "!req.url.path.startsWith('/mcp')"
+    actions:
+      - type: deny
+        config:
+          status_code: 404
+
+# Extend from here the same way Alkira layered policy: add allow/deny by claim,
+# strip/inject headers, or route different peers to different tool surfaces.

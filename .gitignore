@@ -1,0 +1,11 @@
+# Secrets & per-operator layout — never commit
+config.yaml
+*.env
+.env
+
+# Build output
+/agent-mesh
+/node
+
+# Real data (keep only the sample ./data committed if you want; ignore private trees)
+/data/private/
