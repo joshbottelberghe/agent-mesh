@@ -1,5 +1,7 @@
 # Secrets & per-operator layout — never commit
 config.yaml
+config.*.yaml
+!config.example.yaml
 *.env
 .env
 
