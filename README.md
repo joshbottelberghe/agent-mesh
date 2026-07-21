@@ -20,14 +20,19 @@ You and a teammate share this same repo, each point it at your own private data,
 and neither of you ever sees the other's files — only the tool results you each
 choose to expose.
 
+**New here? See [QUICKSTART.md](QUICKSTART.md)** for a 10-minute peer-with-a-teammate walkthrough.
+
 ## Run it
 ```sh
 cp config.example.yaml config.yaml       # then edit paths
 export NGROK_AUTHTOKEN=...                # from dashboard.ngrok.com
+export AGENT_MESH_TOKENS="alex:$(openssl rand -hex 24)"   # optional: per-peer bearer auth
 go build -o agent-mesh .
 ./agent-mesh                             # serves MCP at <ngrok-url>/mcp
 ```
 Set `ngrok.enabled: false` to serve locally at `listen_addr` instead (no tunnel).
+Leave `AGENT_MESH_TOKENS` unset for open local/dev use; set it (`name:token,...`) to
+require `Authorization: Bearer <token>` on every request.
 
 ## Tools
 - `node_info` — identify this node and list its tools (use first when peering).
@@ -47,6 +52,6 @@ tools. Grows to N by adding entries.
 
 ## Roadmap
 - [x] MCP server over local data, exposed via ngrok-go
-- [ ] Traffic Policy edge auth applied to the live endpoint
+- [x] Per-peer bearer-token auth (`AGENT_MESH_TOKENS`); optional edge auth via Traffic Policy
 - [ ] Peer client: call a configured peer's tools from this node
 - [ ] Per-peer tool scoping (who can see which tools)
