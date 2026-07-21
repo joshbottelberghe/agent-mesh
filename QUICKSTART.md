@@ -1,8 +1,18 @@
 # agent-mesh — Quickstart (peer your agent with a teammate's)
 
-Run a small node on your machine that exposes a **curated** slice of your data as
-MCP tools, reachable by a teammate's AI agent over an ngrok URL with a per-peer
-token. ~10 minutes. Nothing but the folder you choose is ever exposed.
+## What this is (30-second version)
+A teammate is inviting you to **connect your AI agents**. You each run a tiny Go
+program on your own machine that publishes a **curated folder** as a few MCP tools
+(the protocol Claude/Cursor use to call tools). It gets a public HTTPS URL via
+ngrok — no open ports, no public IP — locked behind a **token you mint per person**.
+
+**End state:** your Claude (or any MCP client) can call `search_notes` / `list_tasks`
+on their machine, and theirs on yours — live, over the internet. Neither of you gets
+access to the other's files, network, or anything outside the one folder you choose
+to share. Tokens are revocable; a node is only reachable while its machine is on.
+
+~10 minutes. You need nothing from the person who sent you this except one URL + one
+token (step 4).
 
 ## Prereqs
 - **Go** 1.23+  ·  **ngrok** account (free) + authtoken (`dashboard.ngrok.com/get-started/your-authtoken`)  ·  **Claude Code** (or any MCP client)
