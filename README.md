@@ -1,57 +1,46 @@
 # agent-mesh
 
-A small, shareable **peer node**: it exposes a curated slice of your local data
-as **MCP tools**, reachable by other people's AI agents over an **ngrok** endpoint
-with **auth enforced at the edge**. Run one, hand a teammate your URL + a token,
-and your agents can query each other.
+Expose a curated set of local files as [MCP](https://modelcontextprotocol.io) tools,
+reachable by another machine's AI agent over an [ngrok](https://github.com/ngrok/ngrok-go)
+tunnel with per-peer token auth. The node dials outbound to ngrok's edge — no inbound
+port, no public IP — and serves only the directory it is pointed at.
 
-Built with [`ngrok-go`](https://github.com/ngrok/ngrok-go) (the tunnel is a
-`net.Listener` on ngrok's cloud) and [`mcp-go`](https://github.com/mark3labs/mcp-go)
-(the MCP server). No inbound port, no public IP, nothing exposed on your network.
+Built on `ngrok-go` (tunnel as a `net.Listener`) and
+[`mcp-go`](https://github.com/mark3labs/mcp-go) (MCP server).
 
-## The public / private split (why this is safe to share)
-- **The repo is generic framework.** Tools read from whatever paths you configure.
-- **Your data stays yours.** Paths live in `config.yaml` (**gitignored**); it never
-  enters the repo. The sample `./data` is the only data that ships.
-- **Secrets live in the environment.** `NGROK_AUTHTOKEN` and per-peer tokens are
-  env vars, not files. So both the repo *and* your `config.yaml` are secret-free.
+## Design
+- Framework is generic; data paths live in `config.yaml` (gitignored).
+- Secrets are environment variables (`NGROK_AUTHTOKEN`, `AGENT_MESH_TOKENS`), not files.
+- Two nodes can share this repo, each pointed at its own data. Peers see tool results, not files.
 
-You and a teammate share this same repo, each point it at your own private data,
-and neither of you ever sees the other's files — only the tool results you each
-choose to expose.
-
-**New here? See [QUICKSTART.md](QUICKSTART.md)** for a 10-minute peer-with-a-teammate walkthrough.
-
-## Run it
+## Run
 ```sh
-cp config.example.yaml config.yaml       # then edit paths
-export NGROK_AUTHTOKEN=...                # from dashboard.ngrok.com
-export AGENT_MESH_TOKENS="alex:$(openssl rand -hex 24)"   # optional: per-peer bearer auth
+cp config.example.yaml config.yaml     # set data paths
+export NGROK_AUTHTOKEN=...              # dashboard.ngrok.com
+export AGENT_MESH_TOKENS="peer:$(openssl rand -hex 24)"   # per-peer auth (optional)
 go build -o agent-mesh .
-./agent-mesh                             # serves MCP at <ngrok-url>/mcp
+./agent-mesh                           # MCP at <ngrok-url>/mcp
 ```
-Set `ngrok.enabled: false` to serve locally at `listen_addr` instead (no tunnel).
-Leave `AGENT_MESH_TOKENS` unset for open local/dev use; set it (`name:token,...`) to
-require `Authorization: Bearer <token>` on every request.
+`ngrok.enabled: false` serves locally at `listen_addr`. Unset `AGENT_MESH_TOKENS` for open local use.
 
 ## Tools
-- `node_info` — identify this node and list its tools (use first when peering).
-- `list_tasks` — list tasks (title/status/priority), optional status filter.
-- `search_notes` — full-text search your notes, returns file + snippet.
+| tool | description |
+|------|-------------|
+| `node_info` | node identity + tool list |
+| `list_tasks` | tasks (title/status/priority), optional status filter |
+| `search_notes` | full-text search notes; returns file + snippet |
 
-## Securing the endpoint (Traffic Policy)
-See [`traffic-policy.example.yaml`](traffic-policy.example.yaml): require a per-peer
-bearer token, rate-limit callers, and expose only `/mcp` — all at ngrok's edge,
-before anything reaches your machine. Give each peer their own token so you can
-revoke one without disturbing the others.
+## Auth
+Per-peer bearer tokens via `AGENT_MESH_TOKENS="name:token,..."`, enforced on every request.
+Edge alternative: [`traffic-policy.example.yaml`](traffic-policy.example.yaml) (token, rate
+limit, `/mcp`-only, at ngrok's PoP).
 
-## Peering (phase 2)
-Add a peer under `peers:` with their `url` and the env var holding their token.
-Two nodes + two tokens = a two-node mesh where each agent can call the other's
-tools. Grows to N by adding entries.
+## Peering
+See [QUICKSTART.md](QUICKSTART.md) to connect two nodes, and [CONNECT.md](CONNECT.md) for the
+private-node / public-node split.
 
 ## Roadmap
-- [x] MCP server over local data, exposed via ngrok-go
-- [x] Per-peer bearer-token auth (`AGENT_MESH_TOKENS`); optional edge auth via Traffic Policy
-- [ ] Peer client: call a configured peer's tools from this node
-- [ ] Per-peer tool scoping (who can see which tools)
+- [x] MCP over local data via ngrok-go
+- [x] Per-peer token auth; optional Traffic Policy edge auth
+- [ ] Peer client: call a configured peer's tools
+- [ ] Per-peer tool scoping
