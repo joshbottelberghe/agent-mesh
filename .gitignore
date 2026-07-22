@@ -8,6 +8,7 @@ config.*.yaml
 # Build output
 /agent-mesh
 /node
+/meshcli
 
 # Real data (keep only the sample ./data committed if you want; ignore private trees)
 /data/private/

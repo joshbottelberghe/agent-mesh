@@ -35,6 +35,14 @@ Per-peer bearer tokens via `AGENT_MESH_TOKENS="name:token,..."`, enforced on eve
 Edge alternative: [`traffic-policy.example.yaml`](traffic-policy.example.yaml) (token, rate
 limit, `/mcp`-only, at ngrok's PoP).
 
+## Client
+`meshcli` is a minimal MCP client for testing a node:
+```sh
+go build -o meshcli ./cmd/meshcli
+./meshcli -url https://host/mcp -token <tok> info
+./meshcli -url https://host/mcp -token <tok> search "query"
+```
+
 ## Peering
 See [QUICKSTART.md](QUICKSTART.md) to connect two nodes, and [CONNECT.md](CONNECT.md) for the
 private-node / public-node split.
