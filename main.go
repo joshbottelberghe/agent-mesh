@@ -38,7 +38,7 @@ func main() {
 		server.WithToolCapabilities(true),
 	)
 	registerTools(s, cfg)
-	// Optional per-peer bearer-token auth. Set AGENT_MESH_TOKENS="alex:tok,bo:tok"
+	// Optional per-peer bearer-token auth. Set AGENT_MESH_TOKENS="ally:tok,peer:tok"
 	// to require a token; leave unset for open local/dev use.
 	var handler http.Handler = withAuth(server.NewStreamableHTTPServer(s))
 

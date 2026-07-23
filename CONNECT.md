@@ -31,10 +31,10 @@ Send them (over a private channel):
 ```json
 {
   "mcpServers": {
-    "alex-mesh": {
+    "ally-mesh": {
       "type": "http",
-      "url": "https://<alex-domain>/mcp",
-      "headers": { "Authorization": "Bearer <token-alex-gave-you>" }
+      "url": "https://<ally-domain>/mcp",
+      "headers": { "Authorization": "Bearer <token-ally-gave-you>" }
     }
   }
 }

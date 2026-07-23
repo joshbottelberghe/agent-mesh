@@ -20,6 +20,6 @@ data:
 # Phase 2 — other nodes this one may call. Tokens are read from the named env
 # var, so config.yaml still holds no secrets.
 peers: []
-  # - name: "alex"
-  #   url: "https://alex-node.ngrok.app/mcp"
-  #   token_env: "PEER_ALEX_TOKEN"
+  # - name: "ally"
+  #   url: "https://ally-node.ngrok.app/mcp"
+  #   token_env: "PEER_ALLY_TOKEN"
