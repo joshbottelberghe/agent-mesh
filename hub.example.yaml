@@ -1,0 +1,49 @@
+# mesh-hub — federation gateway config (copy to hub.yaml, which is gitignored).
+#
+# The hub presents ONE governed MCP endpoint that aggregates many upstreams and
+# enforces per-consumer auth + rate-limit + tool-scoping at the front door.
+# No secrets here: consumer tokens and per-upstream tokens come from the
+# environment (see token_env / MESH_HUB_TOKENS below).
+
+node_name: "mesh-hub"
+listen_addr: "127.0.0.1:7903"
+
+ngrok:
+  enabled: false            # true = dial ngrok's edge directly; false = run behind ngrok-gateway
+  domain: ""                # optional reserved domain when enabled
+
+# Optional: POST aggregate usage (consumer, tool, latency, ok) to the analytics
+# collector. Metadata only — never arguments or results.
+analytics_url: "http://127.0.0.1:7846/collect"
+
+# Upstreams federated into the one hub surface.
+#   kind: mcp   -> dial the node, re-expose each of its tools as "<name>__<tool>"
+#   kind: http  -> wrap a plain HTTP GET as a single tool "<tool>"
+upstreams:
+  - name: "josh"            # another agent-mesh MCP node (yours)
+    kind: "mcp"
+    url: "http://127.0.0.1:7902/mcp"
+    token_env: "MESH_UP_JOSH"     # optional bearer to reach it (empty env = no auth)
+
+  - name: "peer"            # a teammate's remote node, over their ngrok domain
+    kind: "mcp"
+    url: "https://peer.example.ngrok.app/mcp"
+    token_env: "MESH_UP_PEER"
+
+  - name: "board"           # a plain HTTP service exposed as one MCP tool
+    kind: "http"
+    url: "http://127.0.0.1:7861/api/board"
+    tool: "emoji_board"
+    description: "Current tallies on the public emoji board (stampwall)."
+
+# Per-consumer policy. A consumer is identified by its bearer token, bound to a
+# name here via MESH_HUB_TOKENS="ally:<token>,peer:<token>".
+#   allow: upstream names this consumer may reach; ["*"] = all
+#   rate_per_min: 0 = unlimited
+consumers:
+  - name: "ally"
+    allow: ["josh", "board"]
+    rate_per_min: 60
+  - name: "peer"
+    allow: ["*"]
+    rate_per_min: 120

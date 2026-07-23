@@ -2,6 +2,9 @@
 config.yaml
 config.*.yaml
 !config.example.yaml
+hub.yaml
+hub.*.yaml
+!hub.example.yaml
 *.env
 .env
 
@@ -9,6 +12,7 @@ config.*.yaml
 /agent-mesh
 /node
 /meshcli
+/mesh-hub
 
 # Real data (keep only the sample ./data committed if you want; ignore private trees)
 /data/private/
