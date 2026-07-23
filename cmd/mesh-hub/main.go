@@ -50,10 +50,32 @@ func main() {
 		log.Fatalf("config: %v", err)
 	}
 
+	handler, ups := newHub(cfg)
+
+	if !cfg.Ngrok.Enabled {
+		log.Printf("mesh-hub %q serving federated MCP locally at http://%s/mcp (%d upstreams)", cfg.NodeName, cfg.ListenAddr, len(ups))
+		log.Fatal(http.ListenAndServe(cfg.ListenAddr, handler))
+	}
+	opts := []config.HTTPEndpointOption{}
+	if cfg.Ngrok.Domain != "" {
+		opts = append(opts, config.WithDomain(cfg.Ngrok.Domain))
+	}
+	ln, err := ngrok.Listen(context.Background(), config.HTTPEndpoint(opts...), ngrok.WithAuthtokenFromEnv())
+	if err != nil {
+		log.Fatalf("ngrok.Listen: %v", err)
+	}
+	log.Printf("mesh-hub %q live — federated MCP at %s/mcp (%d upstreams)", cfg.NodeName, ln.URL(), len(ups))
+	log.Fatal(http.Serve(ln, handler))
+}
+
+// newHub builds the governed, federated MCP handler from a config: it dials and
+// registers every upstream, adds hub_info, and wraps the MCP server with the
+// governor (token->consumer gate + per-call consumer injection). Returned
+// separately from serving so both main and tests can drive it. A dead upstream
+// is skipped (logged) so the hub still comes up; hub_info reports its state.
+func newHub(cfg *HubConfig) (http.Handler, []*upstream) {
 	s := server.NewMCPServer("mesh-hub:"+cfg.NodeName, version, server.WithToolCapabilities(true))
 
-	// Federate every upstream into the one hub surface. A dead upstream is
-	// skipped (logged) so the hub still comes up; hub_info reports its state.
 	ups := make([]*upstream, 0, len(cfg.Upstreams))
 	for i := range cfg.Upstreams {
 		u := &cfg.Upstreams[i]
@@ -73,27 +95,12 @@ func main() {
 	}
 	registerHubInfo(s, cfg, ups)
 
-	// Governance: the token->consumer map gates the door (401/429 in the HTTP
-	// middleware); the resolved consumer is injected into each tool call's
-	// context so handlers can enforce the per-consumer upstream allow-list.
+	// The token->consumer map gates the door (401/429 in the HTTP middleware);
+	// the resolved consumer is injected into each tool call's context so
+	// handlers can enforce the per-consumer upstream allow-list.
 	gov := newGovernor(cfg)
 	streaming := server.NewStreamableHTTPServer(s, server.WithHTTPContextFunc(gov.inject))
-	handler := gov.gate(streaming)
-
-	if !cfg.Ngrok.Enabled {
-		log.Printf("mesh-hub %q serving federated MCP locally at http://%s/mcp (%d upstreams)", cfg.NodeName, cfg.ListenAddr, len(ups))
-		log.Fatal(http.ListenAndServe(cfg.ListenAddr, handler))
-	}
-	opts := []config.HTTPEndpointOption{}
-	if cfg.Ngrok.Domain != "" {
-		opts = append(opts, config.WithDomain(cfg.Ngrok.Domain))
-	}
-	ln, err := ngrok.Listen(context.Background(), config.HTTPEndpoint(opts...), ngrok.WithAuthtokenFromEnv())
-	if err != nil {
-		log.Fatalf("ngrok.Listen: %v", err)
-	}
-	log.Printf("mesh-hub %q live — federated MCP at %s/mcp (%d upstreams)", cfg.NodeName, ln.URL(), len(ups))
-	log.Fatal(http.Serve(ln, handler))
+	return gov.gate(streaming), ups
 }
 
 // --- config ---
